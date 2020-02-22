@@ -84,52 +84,52 @@ def write_obj(mesh, mtlfilename, f):
     for boundgeom in mesh.scene.objects('geometry'):
         f.write("# %s - %s\n" % (boundgeom.original.name, boundgeom.original.id))
         for boundprim in boundgeom.primitives():
-            # Determine the properties of these primitives we're going
-            # to use
-            emit_normals = boundprim.normal is not None
-            emit_texcoords = boundprim.texcoordset is not None and len(boundprim.texcoordset) > 0
-            if emit_texcoords and len(boundprim.texcoordset) > 1:
-                raise FilterException("OBJ only supports one texture coordinate set.")
+            if boundprim.vertex is not None:
+                # Determine the properties of these primitives we're going
+                # to use
+                emit_normals = boundprim.normal is not None
+                emit_texcoords = boundprim.texcoordset is not None and len(boundprim.texcoordset) > 0
+                if emit_texcoords and len(boundprim.texcoordset) > 1:
+                    raise FilterException("OBJ only supports one texture coordinate set.")
 
-            # Write transformed vertices, normals, texcoords
-            f.write("\n".join(map(lambda vert: 'v %.7g %.7g %.7g' % tuple(vert), boundprim.vertex.tolist())))
-            f.write("\n")
-
-            if emit_normals:
-                f.write("\n".join(map(lambda norm: 'vn %.7g %.7g %.7g' % tuple(norm), boundprim.normal.tolist())))
+                # Write transformed vertices, normals, texcoords
+                f.write("\n".join(map(lambda vert: 'v %.7g %.7g %.7g' % tuple(vert), boundprim.vertex.tolist())))
                 f.write("\n")
 
-            if emit_texcoords:
-                f.write("\n".join(map(lambda uv: 'vt %.7g %.7g' % tuple(uv), boundprim.texcoordset[0].tolist())))
-                f.write("\n")
+                if emit_normals:
+                    f.write("\n".join(map(lambda norm: 'vn %.7g %.7g %.7g' % tuple(norm), boundprim.normal.tolist())))
+                    f.write("\n")
 
-            # Start using the right material
-            if boundprim.material:
+                if emit_texcoords:
+                    f.write("\n".join(map(lambda uv: 'vt %.7g %.7g' % tuple(uv), boundprim.texcoordset[0].tolist())))
+                    f.write("\n")
+
+                # Start using the right material
                 f.write("usemtl %s\n" % boundprim.material.id)
 
-            if emit_normals and emit_texcoords:
-                format_string = "f %d/%d/%d %d/%d/%d %d/%d/%d"
-                index_iter = izip(boundprim.vertex_index+vert_offset, boundprim.texcoord_indexset[0]+tc_offset, boundprim.normal_index+norm_offset)
-            elif emit_normals:
-                format_string = "f %d//%d %d//%d %d//%d"
-                index_iter = izip(boundprim.vertex_index+vert_offset, boundprim.normal_index+norm_offset)
-            elif emit_texcoords:
-                format_string = "f %d/%d %d/%d %d/%d"
-                index_iter = izip(boundprim.vertex_index+vert_offset, boundprim.texcoord_indexset[0]+tc_offset)
-            else:
-                format_string = "f %d %d %d"
-                index_iter = izip(boundprim.vertex_index+vert_offset)
+                if emit_normals and emit_texcoords:
+                    format_string = "f %d/%d/%d %d/%d/%d %d/%d/%d"
+                    index_iter = izip(boundprim.vertex_index+vert_offset, boundprim.texcoord_indexset[0]+tc_offset, boundprim.normal_index+norm_offset)
+                elif emit_normals:
+                    format_string = "f %d//%d %d//%d %d//%d"
+                    index_iter = izip(boundprim.vertex_index+vert_offset, boundprim.normal_index+norm_offset)
+                elif emit_texcoords:
+                    format_string = "f %d/%d %d/%d %d/%d"
+                    index_iter = izip(boundprim.vertex_index+vert_offset, boundprim.texcoord_indexset[0]+tc_offset)
+                else:
+                    format_string = "f %d %d %d"
+                    index_iter = izip(boundprim.vertex_index+vert_offset)
 
-            # Write transformed primitives
-            f.write("\n".join(map(lambda idx: format_string % tuple(chain.from_iterable(zip(*idx))), index_iter)))
-            f.write("\n")
+                # Write transformed primitives
+                f.write("\n".join(map(lambda idx: format_string % tuple(chain.from_iterable(zip(*idx))), index_iter)))
+                f.write("\n")
 
-            # Finally, update offsets
-            vert_offset += boundprim.vertex.shape[0]
-            if emit_normals:
-                norm_offset += boundprim.normal.shape[0]
-            if emit_texcoords:
-                tc_offset += boundprim.texcoordset[0].shape[0]
+                # Finally, update offsets
+                vert_offset += boundprim.vertex.shape[0]
+                if emit_normals:
+                    norm_offset += boundprim.normal.shape[0]
+                if emit_texcoords:
+                    tc_offset += boundprim.texcoordset[0].shape[0]
 
     f.write("\n")
     
